@@ -5,6 +5,7 @@ const fileLabel = document.getElementById('file-label');
 const uploadForm = document.getElementById('upload-form');
 
 function showFile(file) {
+  if (!selectedFile || !fileLabel) return;
   if (!file) {
     selectedFile.textContent = 'No file selected';
     fileLabel.textContent = 'Choose a file to upload';
@@ -13,30 +14,24 @@ function showFile(file) {
   selectedFile.textContent = `${file.name} · ${(file.size / (1024 * 1024)).toFixed(2)} MB`;
   fileLabel.textContent = file.name;
 }
-
 fileInput?.addEventListener('change', () => showFile(fileInput.files[0]));
-
-['dragenter', 'dragover'].forEach(eventName => {
-  dropZone?.addEventListener(eventName, event => {
-    event.preventDefault();
-    dropZone.classList.add('dragging');
-  });
-});
-['dragleave', 'drop'].forEach(eventName => {
-  dropZone?.addEventListener(eventName, event => {
-    event.preventDefault();
-    dropZone.classList.remove('dragging');
-  });
-});
+['dragenter', 'dragover'].forEach(name => dropZone?.addEventListener(name, event => {
+  event.preventDefault();
+  dropZone.classList.add('dragging');
+}));
+['dragleave', 'drop'].forEach(name => dropZone?.addEventListener(name, event => {
+  event.preventDefault();
+  dropZone.classList.remove('dragging');
+}));
 dropZone?.addEventListener('drop', event => {
   const files = event.dataTransfer?.files;
-  if (files?.length) {
+  if (files?.length && fileInput) {
     fileInput.files = files;
     showFile(files[0]);
   }
 });
 uploadForm?.addEventListener('submit', event => {
-  const file = fileInput.files[0];
+  const file = fileInput?.files?.[0];
   if (!file) {
     event.preventDefault();
     alert('Please choose a file first.');

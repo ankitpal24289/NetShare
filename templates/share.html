@@ -1,42 +1,4 @@
 <!doctype html>
-<html lang="en">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Share file | NetShare</title>
-  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-</head>
-<body>
-  <header class="topbar"><a class="brand" href="{{ url_for('index') }}"><span class="brand-icon">N</span><span>NetShare</span></a><a class="back-link" href="{{ url_for('index') }}">← All files</a></header>
-  <main class="share-page">
-    <div class="share-card">
-      <div class="share-success">✓</div>
-      <p class="eyebrow">READY TO SHARE</p>
-      <h1>Your file is ready.</h1>
-      <p class="share-intro">Anyone with access to this app and the link below can download this file.</p>
-      <div class="share-file"><div class="file-type">{{ file.name.rsplit('.', 1)[-1][:4].upper() if '.' in file.name else 'FILE' }}</div><div class="file-info"><h3>{{ file.name }}</h3><p>{{ file.size|filesizeformat }}</p></div></div>
-      <label class="field-label" for="share-url">Download link</label>
-      <div class="copy-field"><input id="share-url" type="text" readonly value="{{ download_url }}"><button class="button primary" id="copy-button" type="button">Copy link</button></div>
-      <a class="button secondary full-button" href="{{ url_for('download', file_id=file.id) }}">Download file ↓</a>
-      <p class="share-note" id="copy-status" aria-live="polite">Share this link only with people you trust.</p>
-      <a class="text-link" href="{{ url_for('index') }}">← Back to NetShare</a>
-    </div>
-  </main>
-  <script>
-    const copyButton = document.getElementById('copy-button');
-    const shareUrl = document.getElementById('share-url');
-    const copyStatus = document.getElementById('copy-status');
-    copyButton.addEventListener('click', async () => {
-      try {
-        await navigator.clipboard.writeText(shareUrl.value);
-        copyButton.textContent = 'Copied ✓';
-        copyStatus.textContent = 'Link copied. You can now share it.';
-      } catch (e) {
-        shareUrl.select();
-        document.execCommand('copy');
-        copyStatus.textContent = 'If copying did not work, select and copy the link manually.';
-      }
-    });
-  </script>
-</body>
-</html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Share {{ file.name }} | NetShare</title><link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}"></head>
+<body><header class="topbar"><a class="brand" href="{{ url_for('index') }}"><span class="brand-icon">N</span><span>NetShare</span></a><span class="top-note">Shareable download</span></header>
+<main class="container narrow"><section class="upload-panel share-page"><p class="eyebrow">SHARED FILE</p><h1>{{ file.name }}</h1><p class="hero-text">Download this file from NetShare.</p><p class="share-meta">Size: {{ file.size }} bytes</p><a class="button primary" href="{{ download_url }}">Download file ↓</a><p><a href="{{ url_for('index') }}">← Back to NetShare</a></p></section></main><footer><span>NetShare • Networking &amp; Web Technologies Mini-Project</span></footer></body></html>

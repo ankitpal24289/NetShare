@@ -3,23 +3,22 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="NetShare - a simple local-network file sharing mini-project">
+  <meta name="description" content="NetShare - browser-based file sharing with direct peer-to-peer transfers">
   <title>NetShare | File Sharing</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
   <header class="topbar">
     <a class="brand" href="{{ url_for('index') }}"><span class="brand-icon">N</span><span>NetShare</span></a>
-    <span class="top-note"><span class="status-dot"></span> Local file sharing</span>
+    <span class="top-note"><span class="status-dot"></span> Direct device sharing</span>
   </header>
-
   <main class="container">
     <section class="hero">
       <div class="hero-copy">
-        <p class="eyebrow">SIMPLE. FAST. LOCAL.</p>
+        <p class="eyebrow">SIMPLE. FAST. CONNECTED.</p>
         <h1>Files, shared <span>simply.</span></h1>
-        <p class="hero-text">Upload a file, then share its download link with anyone who can access this app on your network.</p>
-        <div class="feature-pills"><span>↗ Easy uploads</span><span>⌁ Shareable links</span><span>▣ Up to 100 MB</span></div>
+        <p class="hero-text">Create a room, share its code, and send documents directly to connected browsers. Keep the traditional upload-and-download feature for files you want to store on the server.</p>
+        <div class="feature-pills"><span>↗ Direct P2P transfers</span><span>⌁ Multi-user rooms</span><span>▣ Documents &amp; media</span></div>
       </div>
       <div class="hero-art" aria-hidden="true">
         <div class="art-orbit orbit-one"></div><div class="art-orbit orbit-two"></div>
@@ -29,84 +28,57 @@
     </section>
 
     {% with messages = get_flashed_messages(with_categories=true) %}
-      {% if messages %}
-        <div class="flash-stack" role="status">
-          {% for category, message in messages %}
-            <div class="flash {{ category }}">{{ message }}</div>
-          {% endfor %}
-        </div>
-      {% endif %}
+      {% if messages %}<div class="flash-stack" role="status">{% for category, message in messages %}<div class="flash {{ category }}">{{ message }}</div>{% endfor %}</div>{% endif %}
     {% endwith %}
 
     <section class="direct-panel" id="direct-transfer">
       <div class="section-heading">
-        <div><p class="eyebrow">DEVICE TO DEVICE</p><h2>Direct Transfer <span class="new-tag">NEW</span></h2></div>
+        <div><p class="eyebrow">DEVICE TO DEVICE</p><h2>Direct Transfer <span class="new-tag">MULTI-USER</span></h2></div>
         <span class="step-tag">WEBRTC / P2P</span>
       </div>
-      <p class="direct-intro">Send files directly between two browsers. Create a room on one device, then enter its code on the other. The signaling server helps connect the devices; file contents travel over the WebRTC data channel when a direct path is available.</p>
+      <p class="direct-intro">Create a room on one device and join with the code on other devices. Up to {{ max_room_members }} participants can connect. Files are sent over WebRTC data channels when a direct route is available; the signaling server coordinates connections, not file contents.</p>
       <div class="direct-room-grid">
         <div class="room-create-card">
-          <div class="room-step">01</div>
-          <h3>Create a room</h3>
-          <p>Use this device as the first participant and share the room code.</p>
+          <div class="room-step">01</div><h3>Create a room</h3>
+          <p>Start a room on this device, then share its code with the others.</p>
           <button type="button" class="button primary" id="create-room-btn">Create room <span>↗</span></button>
         </div>
         <div class="room-join-card">
-          <div class="room-step">02</div>
-          <h3>Join a room</h3>
-          <p>On your second device, enter the code from the first device.</p>
+          <div class="room-step">02</div><h3>Join a room</h3>
+          <p>Enter the code shown on the host device.</p>
           <div class="join-controls"><input type="text" id="room-code-input" maxlength="12" placeholder="e.g. NET482" aria-label="Room code" autocomplete="off"><button type="button" class="button secondary" id="join-room-btn">Join</button></div>
         </div>
       </div>
-      <div class="room-code-line"><div><span class="room-code-caption">YOUR ROOM CODE</span><strong id="room-code-display" hidden></strong><span id="room-code-placeholder">No room created or joined yet</span></div><button type="button" class="button secondary" id="copy-room-btn" hidden>Copy code</button></div>
+      <div class="room-code-line">
+        <div><span class="room-code-caption">ROOM CODE</span><strong id="room-code-display" hidden></strong><span id="room-code-placeholder">No room created or joined yet</span></div>
+        <div class="room-actions"><button type="button" class="button secondary" id="copy-room-btn" hidden>Copy code</button><button type="button" class="button secondary" id="leave-room-btn" hidden>Leave room</button></div>
+      </div>
       <div class="direct-status waiting" id="direct-status" role="status">Not connected. Create or join a room to begin.</div>
+      <div class="participants-panel"><h3>Participants</h3><ul id="participant-list"><li>No participants yet</li></ul><p class="drop-hint">Room limit: {{ max_room_members }} devices including yours.</p></div>
       <div id="transfer-controls" class="transfer-controls" hidden>
-        <div class="transfer-file-picker"><label for="direct-file-input" class="direct-file-label"><span class="upload-icon">↑</span><strong id="direct-file-label">Choose a file to send</strong><span class="drop-hint">File stays on your device until you send it</span></label><input type="file" id="direct-file-input"><button type="button" class="button primary" id="send-direct-btn">Send directly <span>↗</span></button></div>
+        <div class="transfer-file-picker"><label for="direct-file-input" class="direct-file-label"><span class="upload-icon">↑</span><strong id="direct-file-label">Choose a file to send</strong><span class="drop-hint">The file stays on your device until you send it</span></label><input type="file" id="direct-file-input"><button type="button" class="button primary" id="send-direct-btn">Send to connected participants <span>↗</span></button></div>
       </div>
       <div id="direct-progress-wrap" class="direct-progress-wrap" hidden><div class="progress-track"><div id="direct-progress" class="progress-bar"></div></div><p id="direct-progress-text">Waiting for a transfer…</p></div>
       <div class="received-area"><h3>Files received on this device</h3><div id="received-files" class="received-files"><p class="received-empty">Received files will appear here with a Save file button.</p></div></div>
-      <div class="transfer-log-wrap"><h3>Transfer activity</h3><div id="transfer-log" class="transfer-log"><div class="log-item">Ready. Both devices must have this app open.</div></div></div>
-      <p class="direct-footnote"><strong>Demo note:</strong> Start the app on your laptop, then open the laptop's local IP address on your phone while both are on the same Wi-Fi. If direct connectivity fails on other networks, a TURN relay server may be required. This demo does not include user accounts or room authentication.</p>
+      <div class="transfer-log-wrap"><h3>Transfer activity</h3><div id="transfer-log" class="transfer-log"><div class="log-item">Ready. Keep this page open on every device.</div></div></div>
+      <p class="direct-footnote"><strong>Network note:</strong> STUN helps devices discover direct routes. Some mobile or restricted networks require a TURN relay; this project does not include a TURN service. Room membership is temporary and resets if the server restarts. Use only with people you trust; room codes are not authentication.</p>
     </section>
 
     <section class="upload-panel">
-      <div class="section-heading">
-        <div><p class="eyebrow">GET STARTED</p><h2>Share a new file</h2></div>
-        <span class="step-tag">01 / UPLOAD</span>
-      </div>
+      <div class="section-heading"><div><p class="eyebrow">SERVER-STORED SHARING</p><h2>Share a new file</h2></div><span class="step-tag">01 / UPLOAD</span></div>
       <form action="{{ url_for('upload') }}" method="post" enctype="multipart/form-data" id="upload-form">
-        <label class="drop-zone" for="file-input" id="drop-zone">
-          <span class="upload-icon">↑</span>
-          <strong id="file-label">Choose a file to upload</strong>
-          <span class="drop-hint">Click to browse or drag and drop here</span>
-          <span class="drop-hint small">Maximum file size: 100 MB</span>
-          <input type="file" name="file" id="file-input" required>
-        </label>
+        <label class="drop-zone" for="file-input" id="drop-zone"><span class="upload-icon">↑</span><strong id="file-label">Choose a file to upload</strong><span class="drop-hint">Click to browse or drag and drop here</span><span class="drop-hint small">Maximum file size: 100 MB</span><input type="file" name="file" id="file-input" required></label>
         <div class="upload-actions"><span id="selected-file" class="selected-file">No file selected</span><button type="submit" class="button primary">Upload file <span>↗</span></button></div>
       </form>
     </section>
 
     <section class="files-section">
-      <div class="section-heading">
-        <div><p class="eyebrow">YOUR SHARED SPACE</p><h2>Available files <span class="count">{{ files|length }}</span></h2></div>
-        <span class="step-tag">02 / SHARE</span>
-      </div>
+      <div class="section-heading"><div><p class="eyebrow">SERVER FILE LIBRARY</p><h2>Available files <span class="count">{{ files|length }}</span></h2></div><span class="step-tag">02 / SHARE</span></div>
       {% if files %}
-        <div class="file-list">
-          {% for file in files %}
-          <article class="file-row">
-            <div class="file-type">{{ file.name.rsplit('.', 1)[-1][:4].upper() if '.' in file.name else 'FILE' }}</div>
-            <div class="file-info"><h3 title="{{ file.name }}">{{ file.name }}</h3><p>{{ file.size_label }} <span>·</span> Added {{ file.uploaded_at[:10] }}</p></div>
-            <div class="file-actions"><a class="button secondary" href="{{ url_for('share', file_id=file.id) }}">Share link</a><a class="icon-button" href="{{ url_for('download', file_id=file.id) }}" title="Download {{ file.name }}" aria-label="Download {{ file.name }}">↓</a></div>
-          </article>
-          {% endfor %}
-        </div>
-      {% else %}
-        <div class="empty-state"><div class="empty-icon">▤</div><h3>No files shared yet</h3><p>Upload your first file above. It will appear here with a download link.</p></div>
-      {% endif %}
+      <div class="file-list">{% for file in files %}<article class="file-row"><div class="file-type">{{ file.name.rsplit('.', 1)[-1][:4].upper() if '.' in file.name else 'FILE' }}</div><div class="file-info"><h3 title="{{ file.name }}">{{ file.name }}</h3><p>{{ file.size_label }} <span>·</span> Added {{ file.uploaded_at[:10] }}</p></div><div class="file-actions"><a class="button secondary" href="{{ url_for('share', file_id=file.id) }}">Share link</a><a class="icon-button" href="{{ url_for('download', file_id=file.id) }}" title="Download {{ file.name }}" aria-label="Download {{ file.name }}">↓</a></div></article>{% endfor %}</div>
+      {% else %}<div class="empty-state"><div class="empty-icon">▤</div><h3>No files shared yet</h3><p>Upload a file above. It will appear here with a download link.</p></div>{% endif %}
     </section>
-
-    <section class="info-banner"><div class="info-mark">i</div><p><strong>For your NWT mini-project:</strong> This app demonstrates a web-based client–server file transfer workflow. Files are stored on the server, so use it only on a trusted local network for demonstrations.</p></section>
+    <section class="info-banner"><div class="info-mark">i</div><p><strong>For your NWT mini-project:</strong> NetShare demonstrates client–server uploads and downloads alongside browser-to-browser file transfer using WebRTC and Socket.IO signaling.</p></section>
   </main>
   <footer><span>NetShare <span class="footer-dot">•</span> Networking &amp; Web Technologies Mini-Project</span><span>Built for learning</span></footer>
   <script src="{{ url_for('static', filename='app.js') }}"></script>

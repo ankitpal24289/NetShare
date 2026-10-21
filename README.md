@@ -1,72 +1,77 @@
-# NetShare — Web-Based File Sharing + Direct P2P Transfer
+# NetShare — complete multi-user version
 
-A Networking and Web Technologies mini-project built with Python Flask, Flask-SocketIO, HTML, CSS, and JavaScript. It provides two different ways to share files:
+This project keeps both existing modes:
+1. **Direct P2P rooms:** users join with a room code and send files through WebRTC data channels.
+2. **Server file library:** upload a file (maximum 100 MB), then share a link or download it later.
 
-1. **Share by link (server-based):** upload a file to the Flask server and share a download link.
-2. **Direct Transfer (WebRTC):** create a room code on one device and join it from another. Once the WebRTC data channel connects, file bytes travel between the browsers rather than through the Flask application server. The server only relays connection signaling messages.
+## Run locally
 
-## Requirements
-- Python 3.10 or newer
-- pip
-- Internet access in the browser for the Socket.IO client CDN on first page load (or download and serve that client locally if your demo must be fully offline)
+1. Install Python 3.10 or newer.
+2. Open a terminal in this project folder.
+3. Create and activate a virtual environment (optional but recommended).
+4. Install dependencies:
 
-## Run on Windows
-1. Extract `NetShare_Web_App.zip` and open the folder in VS Code.
-2. In the terminal, run:
-
-   ```powershell
-   py -m venv .venv
-   .venv\Scripts\activate
+   ```bash
    pip install -r requirements.txt
+   ```
+
+5. Run:
+
+   ```bash
    python app.py
    ```
 
-3. Open `http://127.0.0.1:5000` on the laptop.
+6. Open `http://127.0.0.1:5000`.
 
-## Test direct transfer between laptop and phone
-1. Connect both devices to the same Wi-Fi network.
-2. Keep the Flask app running on your laptop.
-3. Run `ipconfig` in Windows Command Prompt and find the laptop's IPv4 address (example: `192.168.1.8`).
-4. On the phone, open `http://YOUR-PC-IP:5000`, replacing the example with the actual IP address.
-5. On the laptop, scroll to **Direct Transfer** and click **Create room**.
-6. Copy the six-character room code and enter it on the phone, then click **Join**.
-7. Wait for the status to say the direct connection is established. Select a file on either device and click **Send directly**. The receiver gets a **Save file** link.
-8. Try a small file first (photo or PDF). Direct transfer supports files up to 500 MB in this demo, depending on device memory and browser capability.
+For a phone on the same Wi-Fi, open the laptop's local IP address with port `5000`. Both devices must be able to reach the laptop.
 
-If the phone cannot reach the app, check that both devices are on the same Wi-Fi, the laptop IP is correct, and Windows Firewall permits Python on the private network. Some guest Wi-Fi networks isolate connected devices. For devices on different networks, a TURN relay may be needed; this starter app uses public STUN servers and does not configure TURN.
+## Deploy on Render
+
+- Push all project files to your GitHub repository.
+- Create a Render **Web Service** from that repository.
+- Build command: `pip install -r requirements.txt`
+- Start command: `gunicorn --worker-class gthread --workers 1 --threads 100 app:app`
+- Set `NETSHARE_SECRET_KEY` to a long random secret (Render blueprint can generate it).
+- Do not increase the number of Gunicorn workers: active room state is held in memory for this student demo.
+
+The included `render.yaml` and `Procfile` provide the same start command.
+
+## How the multi-user rooms work
+
+- The signaling server sends only room membership and WebRTC offer/answer/ICE messages.
+- Each browser creates a separate peer connection to every other browser in the room.
+- A file is sent directly to each connected participant, in chunks, with a progress indicator.
+- Maximum room size is 5 devices, including the creator.
+- The 500 MB direct-transfer limit is a browser-demo limit, not a guarantee that every phone can hold that much data in memory.
+- STUN servers are configured. Some networks block direct WebRTC connections; those networks may require a TURN relay service, which is not included.
+- Room membership is temporary and resets when the server restarts. Room codes are not authentication, so only share them with people you trust.
+- Server-uploaded files are stored on the app's filesystem. On Render, files may not survive a redeploy/restart unless you attach a persistent disk and configure storage accordingly.
+
+## If Join does nothing
+
+1. Open the website on both devices using the exact same Render URL.
+2. Create a room on device A and copy the displayed code.
+3. On device B, type the code and tap Join.
+4. Check **Transfer activity** for a Socket.IO connection or room error.
+5. If the page says the signaling server cannot be reached, inspect Render logs and confirm the service is running with the start command above.
+6. If both devices join but direct connection fails, the network may require a TURN relay.
 
 ## Project structure
+
 ```text
-NetShare_Web_App/
-├── app.py                      # Flask routes + Socket.IO signaling
+NetShare_MultiUser_Complete/
+├── app.py
 ├── requirements.txt
+├── Procfile
+├── render.yaml
 ├── README.md
-├── files.json                  # created after first server-based upload
-├── uploads/                    # files uploaded via Share by link
 ├── templates/
 │   ├── index.html
 │   ├── share.html
 │   └── 404.html
-└── static/
-    ├── style.css
-    ├── app.js
-    └── direct-transfer.js      # WebRTC DataChannel transfer logic
+├── static/
+│   ├── app.js
+│   ├── direct-transfer.js
+│   └── style.css
+└── uploads/
 ```
-
-## NWT concepts demonstrated
-- Client–server architecture and HTTP requests
-- TCP/IP networking and local-area network access
-- Flask web server and Socket.IO signaling
-- WebRTC peer-to-peer data channel for direct file transfer
-- STUN-assisted connection discovery
-- HTML, CSS, JavaScript and browser events
-
-## Important limitations / safety
-- This is an educational demonstration, not a production file-sharing service.
-- There are no accounts, identity checks, or room-code authentication. Anyone who learns a room code may attempt to join; share codes privately and use a trusted network.
-- Room state is stored in server memory and resets when the app restarts.
-- Direct transfer requires both browsers to stay open and connected. The browser may keep file data in memory until it is saved. Start with small files.
-- A direct WebRTC path is not guaranteed on every network. For broader internet connectivity, configure a trusted TURN service.
-- The Socket.IO client is loaded from a CDN. The first page load requires internet access unless you bundle that client locally.
-- The server-based upload feature has no login/access control. Do not expose it to the public internet or use it for confidential files.
-- WebRTC encrypts its transport, but this app does not provide end-to-end identity verification or a secure pairing protocol.
